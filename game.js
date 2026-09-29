@@ -3,9 +3,8 @@
   const $ = id => document.getElementById(id);
   const numbers = [...document.querySelectorAll('.number')];
   const GLITCH_MS = 140;
-  const SCARE_MS = 5400;
-  const FADE_SECONDS = 0.8;
-  let next = 1, phase = 'loading', soundOn = true;
+  const REVEAL_BUTTON_MS = 900;
+  let next = 1, phase = 'loading';
   let audio = null, cue = null, activeSource = null, master = null;
   let ready = false, timers = [], generation = 0;
   const later = (fn, delay) => {
@@ -21,7 +20,7 @@
   }
   function unlockAudio() {
     // Resume directly from a tap, before any timer or promise, for iPhone playback.
-    if (!audio || !soundOn) return;
+    if (!audio) return;
     if (audio.state !== 'running') audio.resume().catch(() => {});
     try {
       const silent = audio.createBufferSource();
@@ -31,24 +30,31 @@
     } catch (_) {}
   }
   function playCue() {
-    if (!audio || !cue || !soundOn) return;
+    if (!audio || !cue || document.hidden) return;
     stopAudio();
     try {
-      const source = audio.createBufferSource(), envelope = audio.createGain();
-      const now = audio.currentTime, duration = SCARE_MS / 1000;
+      const source = audio.createBufferSource();
       source.buffer = cue; source.loop = true; source.loopStart = 0; source.loopEnd = cue.duration;
-      envelope.gain.setValueAtTime(1, now);
-      envelope.gain.setValueAtTime(1, now + duration - FADE_SECONDS);
-      envelope.gain.linearRampToValueAtTime(0, now + duration);
-      source.connect(envelope); envelope.connect(master); activeSource = source;
-      source.onended = () => { source.disconnect(); envelope.disconnect(); if (activeSource === source) activeSource = null; };
-      source.start(0); source.stop(now + duration);
+      source.connect(master); activeSource = source;
+      source.onended = () => { source.disconnect(); if (activeSource === source) activeSource = null; };
+      source.start(0);
     } catch (_) {}
   }
-  function syncSoundButton() {
-    $('sound').textContent = soundOn ? '♪ Sound on' : '♪ Sound off';
-    $('sound').setAttribute('aria-pressed', String(soundOn));
-    $('sound').setAttribute('aria-label', soundOn ? 'Sound on. Tap to mute.' : 'Sound off. Tap to enable.');
+  function clickSound(pitch = 740) {
+    if (!audio || !master) return;
+    try {
+      const oscillator = audio.createOscillator(), envelope = audio.createGain();
+      const now = audio.currentTime;
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(pitch, now);
+      oscillator.frequency.setValueAtTime(pitch * 1.5, now + 0.025);
+      envelope.gain.setValueAtTime(0.0001, now);
+      envelope.gain.linearRampToValueAtTime(0.065, now + 0.003);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+      oscillator.connect(envelope); envelope.connect(master);
+      oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
+      oscillator.start(now); oscillator.stop(now + 0.08);
+    } catch (_) {}
   }
   async function loadMedia() {
     phase = 'loading'; ready = false;
@@ -60,7 +66,7 @@
         if (!AudioEngine) throw new Error('Audio unavailable');
         if (!audio) {
           audio = new AudioEngine({latencyHint:'interactive'});
-          master = audio.createGain(); master.gain.value = soundOn ? 1 : 0;
+          master = audio.createGain(); master.gain.value = 1;
           master.connect(audio.destination);
         }
         if (cue) return;
@@ -83,14 +89,16 @@
     }
   }
   function showBirthday() {
-    cancelTimers(); stopAudio(); phase = 'birthday';
+    if (phase !== 'scare') return {revealed:false, phase};
+    cancelTimers(); phase = 'birthday';
     document.body.classList.remove('glitching');
-    $('game').hidden = true; $('scare').hidden = true; $('skip').hidden = true;
+    $('game').hidden = true; $('reveal').hidden = true;
     $('birthday').hidden = false; $('birthday').classList.add('arriving');
     history.replaceState(null, '', '#happy-birthday');
     document.title = 'Happy Birthday, Brianna!';
     $('birthday').focus({preventScroll:true});
     later(() => $('birthday').classList.remove('arriving'), 850);
+    return {revealed:true, phase};
   }
   function startSurprise() {
     phase = 'glitch';
@@ -101,9 +109,12 @@
       $('game').hidden = true; document.body.classList.remove('glitching');
       // Show the image and start the decoded sound in the same task: no fade-in.
       $('scare').hidden = false; playCue();
-      $('skip').hidden = false; $('scare').focus({preventScroll:true});
+      $('scare').focus({preventScroll:true});
       history.replaceState(null, '', '#surprise');
-      later(showBirthday, SCARE_MS);
+      later(() => {
+        $('reveal').hidden = false;
+        $('reveal').focus({preventScroll:true});
+      }, REVEAL_BUTTON_MS);
     }, GLITCH_MS);
   }
   function chooseNumber(number) {
@@ -124,28 +135,28 @@
   function resetGame() {
     cancelTimers(); stopAudio(); next = 1; phase = ready ? 'playing' : 'loading';
     document.body.classList.remove('glitching');
-    $('game').hidden = false; $('scare').hidden = true; $('birthday').hidden = true; $('skip').hidden = true;
+    $('game').hidden = false; $('scare').hidden = true; $('birthday').hidden = true; $('reveal').hidden = true;
     $('birthday').classList.remove('arriving');
     numbers.forEach(button => { button.disabled = !ready; button.classList.remove('done','wrong'); button.setAttribute('aria-label',`Select number ${button.dataset.number}`); });
     $('feedback').textContent = ''; document.title = "Brianna's Birthday Zone";
     history.replaceState(null, '', location.pathname + location.search);
     window.scrollTo(0,0); numbers[0].focus({preventScroll:true});
   }
-  numbers.forEach(button => button.addEventListener('click', () => { unlockAudio(); chooseNumber(Number(button.dataset.number)); }));
-  $('sound').addEventListener('click', () => {
-    soundOn = !soundOn;
-    if (soundOn) unlockAudio(); else stopAudio();
-    if (audio && master) master.gain.setValueAtTime(soundOn ? 1 : 0, audio.currentTime);
-    syncSoundButton();
-  });
-  $('retry').addEventListener('click', () => { unlockAudio(); void loadMedia(); });
-  $('replay').addEventListener('click', () => { unlockAudio(); resetGame(); });
-  $('skip').addEventListener('click', showBirthday);
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && ['glitch','scare'].includes(phase)) showBirthday(); });
+  numbers.forEach(button => button.addEventListener('click', () => {
+    unlockAudio(); clickSound(560 + Number(button.dataset.number) * 130);
+    chooseNumber(Number(button.dataset.number));
+  }));
+  $('retry').addEventListener('click', () => { unlockAudio(); clickSound(); void loadMedia(); });
+  $('replay').addEventListener('click', () => { unlockAudio(); resetGame(); clickSound(); });
+  $('reveal').addEventListener('click', () => { unlockAudio(); clickSound(980); showBirthday(); });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { stopAudio(); if (['glitch','scare'].includes(phase)) showBirthday(); }
+    if (document.hidden) stopAudio();
+    else if (['scare','birthday'].includes(phase) && !activeSource) { unlockAudio(); playCue(); }
   });
-  window.addEventListener('pagehide', () => { stopAudio(); if (['glitch','scare'].includes(phase)) showBirthday(); });
+  window.addEventListener('pagehide', stopAudio);
+  window.addEventListener('pageshow', () => {
+    if (['scare','birthday'].includes(phase) && !activeSource) { unlockAudio(); playCue(); }
+  });
   ['gesturestart','gesturechange','gestureend'].forEach(type => document.addEventListener(type, event => event.preventDefault(), {passive:false}));
   document.addEventListener('touchmove', event => { if (event.touches.length > 1) event.preventDefault(); }, {passive:false});
   document.addEventListener('dblclick', event => event.preventDefault(), {passive:false});
@@ -155,8 +166,9 @@
   if (context?.registerTool) {
     const lifecycle = new AbortController();
     const register = tool => { try { Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(() => {}); } catch (_) {} };
-    register({name:'read_number_puzzle',description:'Read the birthday number puzzle state.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:() => ({phase,nextNumber:phase === 'playing' ? next : null,completed:next - 1,soundOn,ready})});
-    register({name:'choose_puzzle_number',description:'Select 1, 2, then 3 in the visible puzzle. Selecting 3 triggers a 140 ms glitch, then the supplied horror image and looping recording, followed by the birthday reveal. Sound requires a previous visitor gesture.',inputSchema:{type:'object',properties:{number:{type:'integer',minimum:1,maximum:3}},required:['number'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input => { if (!input || !Number.isInteger(input.number) || input.number < 1 || input.number > 3) throw new Error('Choose 1, 2, or 3.'); return chooseNumber(input.number); }});
+    register({name:'read_number_puzzle',description:'Read the birthday number puzzle state.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:() => ({phase,nextNumber:phase === 'playing' ? next : null,completed:next - 1,loopActive:!!activeSource,ready})});
+    register({name:'choose_puzzle_number',description:'Select 1, 2, then 3 in the visible puzzle. Selecting 3 triggers a 140 ms glitch, then a continuously looping horror image and recording. A centered Click here button appears to reveal the birthday message. Sound requires a previous visitor gesture.',inputSchema:{type:'object',properties:{number:{type:'integer',minimum:1,maximum:3}},required:['number'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input => { if (!input || !Number.isInteger(input.number) || input.number < 1 || input.number > 3) throw new Error('Choose 1, 2, or 3.'); return chooseNumber(input.number); }});
+    register({name:'reveal_birthday_message',description:'Reveal Happy Birthday, Brianna over the currently looping horror scene, without stopping the visual or audio.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:false},execute:showBirthday});
     window.addEventListener('pagehide',() => lifecycle.abort(),{once:true});
   }
 })();

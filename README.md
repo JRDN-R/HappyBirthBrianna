@@ -4,11 +4,11 @@ A small, phone-friendly birthday puzzle with the supplied artwork and jump-scare
 
 ## Play
 
-Select **1 → 2 → 3** across the left/right/left buttons. The third selection triggers a 140 ms page glitch, followed immediately by the horror image and audio. The image has animated VHS tracking. After 5.4 seconds, the page reveals **Happy Birthday, Brianna!**
+Select **1 → 2 → 3** across the left/right/left buttons. The third selection triggers a 140 ms page glitch, followed immediately by the horror image and audio. The image has animated VHS tracking. The horror scene keeps looping. After 0.9 seconds, a floating **Click here** button appears in the center. Clicking it reveals **Happy Birthday, Brianna!** over the scene while both the image and audio continue looping. Each button plays a short retro square-wave click.
 
-The audio is loaded and decoded before play and unlocked on the first tap. It is a 3.2-second opening excerpt from the supplied recording (starting at 0.28 seconds), converted to mono 16 kHz / 48 kbps MP3 and boosted 6 dB with peak limiting. The cue has a short tail fade and repeats during the scare; an additional 0.8-second fade ends the scare. Output volume still follows the visitor's device volume.
+The audio is loaded and decoded before play and unlocked on the first tap. It is a 3.2-second opening excerpt from the supplied recording (starting at 0.28 seconds), converted to mono 16 kHz / 48 kbps MP3 and boosted 6 dB with peak limiting. Each audio loop has a short tail fade before the next impact. The loop continues until replay or leaving the page; it pauses while the page is hidden and resumes when returning. Output volume still follows the visitor's device volume.
 
-Mute, skip, replay, keyboard buttons, background-tab cancellation, and reduced-motion preferences are supported. Mobile viewport and gesture handling discourage page zoom; browser accessibility overrides may still permit it.
+Replay, keyboard buttons, background audio pausing, and reduced-motion preferences are supported. There are no Sound or Skip buttons. Mobile viewport and gesture handling discourage page zoom; browser accessibility overrides may still permit it.
 
 ## Files
 
@@ -21,10 +21,12 @@ Mute, skip, replay, keyboard buttons, background-tab cancellation, and reduced-m
 
 ## Host
 
+Share the page at **https://jrdn-r.github.io/HappyBirthBrianna/**. Its static Open Graph and large-image card metadata select `assets/birthday-banner.jpg`, the same unmodified image used as the page hero. Metadata includes an absolute HTTPS image URL, JPEG type, dimensions, title, and description, so preview services can read it without executing the game. Share the hosted page URL to get this preview; a GitHub repository URL has GitHub's own preview.
+
 Serve the repository root with any static web host. All asset paths are relative, including for a GitHub Pages project site. For GitHub Pages, choose **Settings → Pages → Deploy from a branch → main → / (root)**, if Pages is not already configured. No Actions workflow is required.
 
 For local testing, use a local HTTP server rather than opening `index.html` as a `file://` URL; audio preloading uses `fetch`.
 
 ## Adjust timing
 
-`GLITCH_MS`, `SCARE_MS`, and `FADE_SECONDS` are near the top of `game.js`. Keep the fade shorter than the scare. Edit the birthday heading in `index.html` to change the message.
+`GLITCH_MS` and `REVEAL_BUTTON_MS` are near the top of `game.js`. The scare runs continuously; its audio fade is baked into the loop asset. Edit the birthday heading in `index.html` to change the message.
