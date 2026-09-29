@@ -4,9 +4,9 @@ A small, phone-friendly birthday puzzle with the supplied artwork and jump-scare
 
 ## Play
 
-Select **1 → 2 → 3** across the left/right/left buttons. The third selection triggers a 140 ms page glitch, followed immediately by the horror image and audio. The image has animated VHS tracking. The horror scene keeps looping. After 0.9 seconds, a floating **Click here** button appears in the center. Clicking it reveals **Happy Birthday, Brianna!** over the scene while both the image and audio continue looping. Each button plays a short retro square-wave click.
+Select **1 → 2 → 3** across the left/right/left buttons. The third selection triggers a 140 ms page glitch, followed immediately by the horror image and audio. The image has animated VHS tracking. The horror scene keeps looping. After 0.9 seconds, a floating **Click here** button appears in the center. Clicking it leaves this page and opens **https://www.amazon.com/g/TR4GP4HNZTAWAT?t=SvL&asin=B07PCMWTSG** in the same browser tab. The scene loops until the link is clicked. Each button plays a short retro square-wave click.
 
-The audio is loaded and decoded before play and unlocked on the first tap. It is a 3.2-second opening excerpt from the supplied recording (starting at 0.28 seconds), converted to mono 16 kHz / 48 kbps MP3 and boosted 6 dB with peak limiting. Each audio loop has a short tail fade before the next impact. The loop continues until replay or leaving the page; it pauses while the page is hidden and resumes when returning. Output volume still follows the visitor's device volume.
+The audio is loaded and decoded before play and unlocked on the first tap. It is a 20-second opening excerpt from the supplied recording (starting at 0.28 seconds), converted to mono 16 kHz / 48 kbps MP3 and boosted 6 dB with peak limiting. Each audio loop has a half-second tail fade before the next impact. The loop continues until replay or leaving the page; it pauses while the page is hidden and resumes when returning. Output volume still follows the visitor's device volume.
 
 Replay, keyboard buttons, background audio pausing, and reduced-motion preferences are supported. There are no Sound or Skip buttons. Mobile viewport and gesture handling discourage page zoom; browser accessibility overrides may still permit it.
 

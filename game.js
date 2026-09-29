@@ -70,7 +70,7 @@
           master.connect(audio.destination);
         }
         if (cue) return;
-        const response = await fetch('assets/jumpscare.mp3');
+        const response = await fetch('assets/jumpscare.mp3?v=20s');
         if (!response.ok) throw new Error('Audio download failed');
         cue = await audio.decodeAudioData(await response.arrayBuffer());
       })();
@@ -88,17 +88,11 @@
       $('retry').hidden = false;
     }
   }
-  function showBirthday() {
-    if (phase !== 'scare') return {revealed:false, phase};
-    cancelTimers(); phase = 'birthday';
-    document.body.classList.remove('glitching');
-    $('game').hidden = true; $('reveal').hidden = true;
-    $('birthday').hidden = false; $('birthday').classList.add('arriving');
-    history.replaceState(null, '', '#happy-birthday');
-    document.title = 'Happy Birthday, Brianna!';
-    $('birthday').focus({preventScroll:true});
-    later(() => $('birthday').classList.remove('arriving'), 850);
-    return {revealed:true, phase};
+  function openGiftLink() {
+    const url = $('reveal').href;
+    cancelTimers(); stopAudio();
+    window.location.assign(url);
+    return {navigating:true, url};
   }
   function startSurprise() {
     phase = 'glitch';
@@ -148,7 +142,8 @@
   }));
   $('retry').addEventListener('click', () => { unlockAudio(); clickSound(); void loadMedia(); });
   $('replay').addEventListener('click', () => { unlockAudio(); resetGame(); clickSound(); });
-  $('reveal').addEventListener('click', () => { unlockAudio(); clickSound(980); showBirthday(); });
+  // Keep native same-tab link navigation; do not preventDefault or show a local overlay.
+  $('reveal').addEventListener('click', () => { unlockAudio(); stopAudio(); clickSound(980); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) stopAudio();
     else if (['scare','birthday'].includes(phase) && !activeSource) { unlockAudio(); playCue(); }
@@ -167,8 +162,8 @@
     const lifecycle = new AbortController();
     const register = tool => { try { Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(() => {}); } catch (_) {} };
     register({name:'read_number_puzzle',description:'Read the birthday number puzzle state.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:() => ({phase,nextNumber:phase === 'playing' ? next : null,completed:next - 1,loopActive:!!activeSource,ready})});
-    register({name:'choose_puzzle_number',description:'Select 1, 2, then 3 in the visible puzzle. Selecting 3 triggers a 140 ms glitch, then a continuously looping horror image and recording. A centered Click here button appears to reveal the birthday message. Sound requires a previous visitor gesture.',inputSchema:{type:'object',properties:{number:{type:'integer',minimum:1,maximum:3}},required:['number'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input => { if (!input || !Number.isInteger(input.number) || input.number < 1 || input.number > 3) throw new Error('Choose 1, 2, or 3.'); return chooseNumber(input.number); }});
-    register({name:'reveal_birthday_message',description:'Reveal Happy Birthday, Brianna over the currently looping horror scene, without stopping the visual or audio.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:false},execute:showBirthday});
+    register({name:'choose_puzzle_number',description:'Select 1, 2, then 3 in the visible puzzle. Selecting 3 triggers a 140 ms glitch, then a continuously looping horror image and recording. A centered Click here link appears and leads to the Amazon gift page in the same tab. Sound requires a previous visitor gesture.',inputSchema:{type:'object',properties:{number:{type:'integer',minimum:1,maximum:3}},required:['number'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input => { if (!input || !Number.isInteger(input.number) || input.number < 1 || input.number > 3) throw new Error('Choose 1, 2, or 3.'); return chooseNumber(input.number); }});
+    register({name:'open_amazon_gift_link',description:'Leave the birthday page and navigate this browser tab to the Amazon gift URL used by the visible Click here link.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:false},execute:openGiftLink});
     window.addEventListener('pagehide',() => lifecycle.abort(),{once:true});
   }
 })();
