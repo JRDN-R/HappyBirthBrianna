@@ -1,1 +1,42 @@
-
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#1646ef">
+  <meta name="description" content="Welcome to Brianna's Birthday Zone.">
+  <title>Brianna's Birthday Zone</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%231646ef' d='M0 0h32v32H0z'/%3E%3Ctext x='16' y='26' text-anchor='middle' fill='%23ffff00' font-family='monospace' font-weight='bold' font-size='29'%3EB%3C/text%3E%3C/svg%3E">
+  <link rel="preload" as="image" href="assets/birthday-banner.jpg">
+  <link rel="preload" as="image" href="assets/scare.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <main id="game" class="game">
+    <img class="birthday-banner" src="assets/birthday-banner.jpg" width="1402" height="1122" alt="Brianna Birthday Zone, with a birthday cake and a photo of two people" fetchpriority="high">
+    <h1 id="instruction">Select the numbers<br>in order.</h1>
+    <div class="number-path" role="group" aria-labelledby="instruction">
+      <button type="button" class="number number-one" data-number="1" aria-label="Select number 1" disabled>1</button>
+      <button type="button" class="number number-two" data-number="2" aria-label="Select number 2" disabled>2</button>
+      <button type="button" class="number number-three" data-number="3" aria-label="Select number 3" disabled>3</button>
+    </div>
+    <p id="feedback" class="feedback" role="status" aria-live="polite">Loading…</p>
+    <button id="retry" class="small-button" type="button" hidden>Try loading again</button>
+  </main>
+  <section id="scare" class="scare" hidden aria-label="Surprise!" tabindex="-1">
+    <img id="scare-image" src="assets/scare.png" width="720" height="1278" alt="A dark VHS horror version of the two people with hollow eyes and open mouths">
+    <div class="tracking" aria-hidden="true"></div>
+  </section>
+  <section id="birthday" class="birthday" hidden aria-labelledby="birthday-title" tabindex="-1">
+    <div class="birthday-message">
+      <p class="stars" aria-hidden="true">★ ★ ★</p>
+      <h2 id="birthday-title">HAPPY<br>BIRTHDAY<span>BRIANNA!</span></h2>
+      <button id="replay" class="small-button replay" type="button">Play again</button>
+    </div>
+  </section>
+  <button id="sound" class="sound-button" type="button" aria-label="Sound on. Tap to mute." aria-pressed="true">♪ Sound on</button>
+  <button id="skip" class="skip" type="button" hidden>Skip</button>
+  <noscript><p class="no-script">Turn on JavaScript to play.</p></noscript>
+</body>
+</html>
