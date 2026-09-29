@@ -26,17 +26,30 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%231646ef' d='M0 0h32v32H0z'/%3E%3Ctext x='16' y='26' text-anchor='middle' fill='%23ffff00' font-family='monospace' font-weight='bold' font-size='29'%3EB%3C/text%3E%3C/svg%3E">
   <link rel="preload" as="image" href="assets/birthday-banner.jpg">
   <link rel="preload" as="image" href="assets/scare.png">
-  <link rel="stylesheet" href="style.css?v=gift20">
-  <script src="game.js?v=gift20" defer></script>
+  <link rel="stylesheet" href="style.css?v=grid16">
+  <script src="game.js?v=grid16" defer></script>
 </head>
 <body>
   <main id="game" class="game">
     <img class="birthday-banner" src="assets/birthday-banner.jpg" width="1402" height="1122" alt="Brianna Birthday Zone, with a birthday cake and a photo of two people" fetchpriority="high">
     <h1 id="instruction">Select the numbers<br>in order.</h1>
     <div class="number-path" role="group" aria-labelledby="instruction">
-      <button type="button" class="number number-one" data-number="1" aria-label="Select number 1" disabled>1</button>
-      <button type="button" class="number number-two" data-number="2" aria-label="Select number 2" disabled>2</button>
-      <button type="button" class="number number-three" data-number="3" aria-label="Select number 3" disabled>3</button>
+      <button type="button" class="number" data-number="1" aria-label="Select number 1" disabled>1</button>
+      <button type="button" class="number" data-number="5" aria-label="Select number 5" disabled>5</button>
+      <button type="button" class="number" data-number="6" aria-label="Select number 6" disabled>6</button>
+      <button type="button" class="number" data-number="9" aria-label="Select number 9" disabled>9</button>
+      <button type="button" class="number" data-number="0" aria-label="Select number 0" disabled>0</button>
+      <button type="button" class="number" data-number="12" aria-label="Select number 12" disabled>12</button>
+      <button type="button" class="number" data-number="8" aria-label="Select number 8" disabled>8</button>
+      <button type="button" class="number" data-number="2" aria-label="Select number 2" disabled>2</button>
+      <button type="button" class="number" data-number="7" aria-label="Select number 7" disabled>7</button>
+      <button type="button" class="number" data-number="11" aria-label="Select number 11" disabled>11</button>
+      <button type="button" class="number" data-number="4" aria-label="Select number 4" disabled>4</button>
+      <button type="button" class="number" data-number="10" aria-label="Select number 10" disabled>10</button>
+      <button type="button" class="number" data-number="14" aria-label="Select number 14" disabled>14</button>
+      <button type="button" class="number" data-number="3" aria-label="Select number 3" disabled>3</button>
+      <button type="button" class="number" data-number="15" aria-label="Select number 15" disabled>15</button>
+      <button type="button" class="number" data-number="13" aria-label="Select number 13" disabled>13</button>
     </div>
     <p id="feedback" class="feedback" role="status" aria-live="polite">Loading…</p>
     <button id="retry" class="small-button" type="button" hidden>Try loading again</button>

@@ -81,7 +81,7 @@
       await Promise.all([audioTask, scareImage.decode()]);
       ready = true; phase = 'playing';
       numbers.forEach(button => { button.disabled = false; });
-      $('feedback').textContent = '';
+      $('feedback').textContent = 'Start with 1.';
     } catch (_) {
       phase = 'load-error';
       $('feedback').textContent = 'Couldn’t finish loading. Try again.';
@@ -132,7 +132,7 @@
     $('game').hidden = false; $('scare').hidden = true; $('birthday').hidden = true; $('reveal').hidden = true;
     $('birthday').classList.remove('arriving');
     numbers.forEach(button => { button.disabled = !ready; button.classList.remove('done','wrong'); button.setAttribute('aria-label',`Select number ${button.dataset.number}`); });
-    $('feedback').textContent = ''; document.title = "Brianna's Birthday Zone";
+    $('feedback').textContent = 'Start with 1.'; document.title = "Brianna's Birthday Zone";
     history.replaceState(null, '', location.pathname + location.search);
     window.scrollTo(0,0); numbers[0].focus({preventScroll:true});
   }
@@ -162,7 +162,7 @@
     const lifecycle = new AbortController();
     const register = tool => { try { Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(() => {}); } catch (_) {} };
     register({name:'read_number_puzzle',description:'Read the birthday number puzzle state.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:() => ({phase,nextNumber:phase === 'playing' ? next : null,completed:next - 1,loopActive:!!activeSource,ready})});
-    register({name:'choose_puzzle_number',description:'Select 1, 2, then 3 in the visible puzzle. Selecting 3 triggers a 140 ms glitch, then a continuously looping horror image and recording. A centered Click here link appears and leads to the Amazon gift page in the same tab. Sound requires a previous visitor gesture.',inputSchema:{type:'object',properties:{number:{type:'integer',minimum:1,maximum:3}},required:['number'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input => { if (!input || !Number.isInteger(input.number) || input.number < 1 || input.number > 3) throw new Error('Choose 1, 2, or 3.'); return chooseNumber(input.number); }});
+    register({name:'choose_puzzle_number',description:'Choose a number from the scattered 4 by 4 grid (0 through 15). The correct sequence begins 1, 2, then 3; other numbers do not advance it. Selecting 3 triggers a 140 ms glitch, then a continuously looping horror image and recording. A centered Click here link appears and leads to the Amazon gift page in the same tab. Sound requires a previous visitor gesture.',inputSchema:{type:'object',properties:{number:{type:'integer',minimum:0,maximum:15}},required:['number'],additionalProperties:false},annotations:{readOnlyHint:false},execute:input => { if (!input || !Number.isInteger(input.number) || input.number < 0 || input.number > 15) throw new Error('Choose a whole number from 0 to 15.'); return chooseNumber(input.number); }});
     register({name:'open_amazon_gift_link',description:'Leave the birthday page and navigate this browser tab to the Amazon gift URL used by the visible Click here link.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:false},execute:openGiftLink});
     window.addEventListener('pagehide',() => lifecycle.abort(),{once:true});
   }
