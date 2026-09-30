@@ -3,9 +3,13 @@
   const $ = id => document.getElementById(id);
   const numbers = [...document.querySelectorAll('.number')];
   const GLITCH_MS = 140;
-  const REVEAL_BUTTON_MS = 900;
+  const REVEAL_BUTTON_MS = 3000;
+  const WRONG_FLASH_MS = 1000;
   let next = 1, phase = 'loading';
-  let audio = null, cue = null, activeSource = null, master = null;
+  let audio = null, cue = null, incorrectCue = null, singleShotCue = null, master = null;
+  let activeSource = null, incorrectSource = null, singleShotSource = null, loopGain = null;
+  let singleShotPlayed = false;
+  const wrongTimers = new Map();
   let ready = false, timers = [], generation = 0;
   const later = (fn, delay) => {
     const token = generation;
@@ -13,10 +17,10 @@
   };
   const cancelTimers = () => { generation++; timers.forEach(clearTimeout); timers = []; };
   function stopAudio() {
-    if (activeSource) {
-      try { activeSource.stop(); activeSource.disconnect(); } catch (_) {}
-      activeSource = null;
-    }
+    [activeSource, incorrectSource, singleShotSource].forEach(source => {
+      if (source) { try { source.stop(); source.disconnect(); } catch (_) {} }
+    });
+    activeSource = incorrectSource = singleShotSource = null;
   }
   function unlockAudio() {
     // Resume directly from a tap, before any timer or promise, for iPhone playback.
@@ -29,16 +33,52 @@
       silent.onended = () => silent.disconnect();
     } catch (_) {}
   }
-  function playCue() {
+  function playCue(at = 0) {
     if (!audio || !cue || document.hidden) return;
     stopAudio();
     try {
       const source = audio.createBufferSource();
+      const volume = audio.createGain();
+      volume.gain.value = 1; loopGain = volume;
       source.buffer = cue; source.loop = true; source.loopStart = 0; source.loopEnd = cue.duration;
-      source.connect(master); activeSource = source;
-      source.onended = () => { source.disconnect(); if (activeSource === source) activeSource = null; };
-      source.start(0);
+      source.connect(volume); volume.connect(master); activeSource = source;
+      source.onended = () => { source.disconnect(); volume.disconnect(); if (activeSource === source) activeSource = null; };
+      source.start(at);
     } catch (_) {}
+  }
+  function playIncorrect() {
+    if (!audio || !incorrectCue || document.hidden) return;
+    if (incorrectSource) { try { incorrectSource.stop(); incorrectSource.disconnect(); } catch (_) {} }
+    const source = audio.createBufferSource();
+    source.buffer = incorrectCue; source.loop = false;
+    source.connect(master); incorrectSource = source;
+    source.onended = () => { source.disconnect(); if (incorrectSource === source) incorrectSource = null; };
+    // The original has 0.2 seconds of leading silence; keep the attack but skip the wait.
+    source.start(0, 0.195);
+  }
+  function playSingleShot(at) {
+    if (singleShotPlayed || !audio || !singleShotCue || document.hidden) return;
+    singleShotPlayed = true;
+    const source = audio.createBufferSource();
+    source.buffer = singleShotCue; source.loop = false;
+    source.connect(master); singleShotSource = source;
+    source.onended = () => { source.disconnect(); if (singleShotSource === source) singleShotSource = null; };
+    // Keep the existing recording underneath, with headroom for the new overlay.
+    if (loopGain) {
+      loopGain.gain.setValueAtTime(0.27, at);
+      loopGain.gain.setValueAtTime(0.27, at + singleShotCue.duration);
+      loopGain.gain.linearRampToValueAtTime(1, at + singleShotCue.duration + 0.18);
+    }
+    source.start(at);
+  }
+  function clearWrong(button) {
+    clearTimeout(wrongTimers.get(button)); wrongTimers.delete(button);
+    button.classList.remove('wrong');
+  }
+  function markWrong(button) {
+    clearWrong(button); void button.offsetWidth; button.classList.add('wrong');
+    wrongTimers.set(button, setTimeout(() => clearWrong(button), WRONG_FLASH_MS));
+    playIncorrect();
   }
   function clickSound(pitch = 740) {
     if (!audio || !master) return;
@@ -69,10 +109,16 @@
           master = audio.createGain(); master.gain.value = 1;
           master.connect(audio.destination);
         }
-        if (cue) return;
-        const response = await fetch('assets/jumpscare.mp3?v=20s');
-        if (!response.ok) throw new Error('Audio download failed');
-        cue = await audio.decodeAudioData(await response.arrayBuffer());
+        const decode = async url => {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error('Audio download failed');
+          return audio.decodeAudioData(await response.arrayBuffer());
+        };
+        [cue, incorrectCue, singleShotCue] = await Promise.all([
+          cue || decode('assets/jumpscare.mp3?v=20s'),
+          incorrectCue || decode('assets/incorrect.m4a'),
+          singleShotCue || decode('assets/jumpscare-singleshot.m4a')
+        ]);
       })();
       const scareImage = $('scare-image');
       if (scareImage.complete && !scareImage.naturalWidth) {
@@ -102,7 +148,9 @@
       phase = 'scare';
       $('game').hidden = true; document.body.classList.remove('glitching');
       // Show the image and start the decoded sound in the same task: no fade-in.
-      $('scare').hidden = false; playCue();
+      $('scare').hidden = false;
+      const audioStart = audio ? audio.currentTime : 0;
+      playCue(audioStart); playSingleShot(audioStart);
       $('scare').focus({preventScroll:true});
       history.replaceState(null, '', '#surprise');
       later(() => {
@@ -116,10 +164,11 @@
     const button = numbers.find(item => Number(item.dataset.number) === number);
     if (!button || button.disabled) return {accepted:false, phase, next};
     if (number !== next) {
-      button.classList.remove('wrong'); void button.offsetWidth; button.classList.add('wrong');
+      markWrong(button);
       $('feedback').textContent = `Select ${next} first.`;
       return {accepted:false, phase, next};
     }
+    clearWrong(button); clickSound(560 + number * 130);
     button.disabled = true; button.classList.add('done');
     button.setAttribute('aria-label', `Number ${number}, selected`);
     next++; $('feedback').textContent = '';
@@ -127,7 +176,8 @@
     return {accepted:true, phase, next:phase === 'playing' ? next : null};
   }
   function resetGame() {
-    cancelTimers(); stopAudio(); next = 1; phase = ready ? 'playing' : 'loading';
+    cancelTimers(); stopAudio(); next = 1; singleShotPlayed = false; phase = ready ? 'playing' : 'loading';
+    numbers.forEach(clearWrong);
     document.body.classList.remove('glitching');
     $('game').hidden = false; $('scare').hidden = true; $('birthday').hidden = true; $('reveal').hidden = true;
     $('birthday').classList.remove('arriving');
@@ -137,7 +187,7 @@
     window.scrollTo(0,0); numbers[0].focus({preventScroll:true});
   }
   numbers.forEach(button => button.addEventListener('click', () => {
-    unlockAudio(); clickSound(560 + Number(button.dataset.number) * 130);
+    unlockAudio();
     chooseNumber(Number(button.dataset.number));
   }));
   $('retry').addEventListener('click', () => { unlockAudio(); clickSound(); void loadMedia(); });
